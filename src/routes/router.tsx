@@ -164,7 +164,7 @@ const reportsDashboardRoute = createRoute({ getParentRoute: () => protectedRoute
 const reportsSalesRoute = createRoute({ getParentRoute: () => protectedRoute, path: '/reports/sales', component: SalesReports, beforeLoad: requireGrant('reports.view') });
 const reportsUsersRoute = createRoute({ getParentRoute: () => protectedRoute, path: '/reports/users', component: UserReports, beforeLoad: requireGrant('reports.view') });
 const meetingReportsRoute = createRoute({ getParentRoute: () => protectedRoute, path: '/meeting-reports', component: MeetingReports, beforeLoad: requireGrant('reports.view') });
-const attendanceReportsRoute = createRoute({ getParentRoute: () => protectedRoute, path: '/reports/attendance', component: AttendanceReports, beforeLoad: requireGrant('reports.view') });
+const attendanceReportsRoute = createRoute({ getParentRoute: () => protectedRoute, path: '/reports/attendance', component: AttendanceReports, beforeLoad: requireGrant('attendance.view') });
 
 // Administration Routes
 const usersRoute = createRoute({ getParentRoute: () => protectedRoute, path: '/users', component: Users, beforeLoad: requireGrant('admin.users.view') });

@@ -34,6 +34,7 @@ interface CompanyLead {
   followUpDateTime?: string
   followTypeDate?: string
   scheduledDateTime?: string
+  createdAt?: string
   createdBy?: { _id: string; name: string; role?: string }
   assignedTo?: Array<{ _id: string; name: string }>
 }
@@ -44,29 +45,47 @@ interface AssignableUser {
   role: string
 }
 
+interface CompanyLeadDateFilters {
+  period: string
+  startDate: string
+  endDate: string
+  month: string
+  year: string
+}
+
 const STATUSES = [
-  "New",
-  "Demo Scheduled",
-  "Interested",
-  "Not Interested",
-  "Prospective",
-  "Follow Up",
-  "Committed",
-  "Converted",
+  { value: "New", label: "New" },
+  { value: "Demo Scheduled", label: "Demo Scheduled" },
+  { value: "Interested", label: "Interested" },
+  { value: "Not Interested", label: "Not Interested" },
+  { value: "Follow Up", label: "Follow Up" },
+  { value: "Committed", label: "Committed" },
+  { value: "Converted", label: "Converted / Paid" },
 ]
 
-const formatDate = (value?: string) => {
+const formatDateTime = (value?: string) => {
   if (!value) return "—"
   const date = new Date(value)
-  return Number.isNaN(date.getTime()) ? "—" : date.toLocaleDateString()
+  if (Number.isNaN(date.getTime())) return "—"
+  return new Intl.DateTimeFormat("en-IN", {
+    timeZone: "Asia/Kolkata",
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: true,
+  }).format(date).replace(/\b(am|pm)\b/gi, (period) => period.toUpperCase())
 }
 
 export function CompanyLeadsTable({
   status,
   onStatusChange,
+  dateFilters,
 }: {
   status: string
   onStatusChange: (status: string) => void
+  dateFilters: CompanyLeadDateFilters
 }) {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
@@ -89,6 +108,11 @@ export function CompanyLeadsTable({
       search: debouncedSearch,
       status,
       city,
+      period: status === "all" ? undefined : dateFilters.period,
+      startDate: status !== "all" && dateFilters.period === "date" ? dateFilters.startDate : undefined,
+      endDate: status !== "all" && dateFilters.period === "date" ? dateFilters.endDate : undefined,
+      month: status !== "all" && dateFilters.period === "month" ? dateFilters.month : undefined,
+      year: status !== "all" && dateFilters.period === "year" ? dateFilters.year : undefined,
     },
     staleTime: 30_000,
   })
@@ -121,7 +145,16 @@ export function CompanyLeadsTable({
   useEffect(() => {
     setSelectedIds([])
     setPage(1)
-  }, [status, city, debouncedSearch])
+  }, [
+    status,
+    city,
+    debouncedSearch,
+    dateFilters.period,
+    dateFilters.startDate,
+    dateFilters.endDate,
+    dateFilters.month,
+    dateFilters.year,
+  ])
 
   const canEditLeads = can(user, "leads.edit")
   const canDeleteLeads = can(user, "leads.delete")
@@ -193,7 +226,7 @@ export function CompanyLeadsTable({
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">All statuses</SelectItem>
-            {STATUSES.map((item) => <SelectItem key={item} value={item}>{item}</SelectItem>)}
+            {STATUSES.map((item) => <SelectItem key={item.value} value={item.value}>{item.label}</SelectItem>)}
           </SelectContent>
         </Select>
         <Select value={city} onValueChange={setCity}>
@@ -249,6 +282,7 @@ export function CompanyLeadsTable({
                   <TableHead>Contact Info</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead>Assigned To</TableHead>
+                  <TableHead>Created At</TableHead>
                   <TableHead>Next Follow-up</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
@@ -256,13 +290,13 @@ export function CompanyLeadsTable({
               <TableBody>
                 {isLoading ? (
                   <TableRow>
-                    <TableCell colSpan={8} className="h-40 text-center">
+                    <TableCell colSpan={9} className="h-40 text-center">
                       <Loader2 className="mx-auto h-7 w-7 animate-spin text-primary" />
                     </TableCell>
                   </TableRow>
                 ) : companies.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={8} className="h-40 text-center text-muted-foreground">
+                    <TableCell colSpan={9} className="h-40 text-center text-muted-foreground">
                       <Building2 className="mx-auto mb-3 h-8 w-8 opacity-50" />
                       No company leads match these filters.
                     </TableCell>
@@ -300,13 +334,16 @@ export function CompanyLeadsTable({
                     </TableCell>
                     <TableCell>
                       <span className="inline-flex rounded-full bg-primary/10 px-2.5 py-1 text-xs font-medium text-primary">
-                        {company.leadStatus || "New"}
+                        {company.leadStatus === "Converted" ? "Converted / Paid" : company.leadStatus || "New"}
                       </span>
                     </TableCell>
                     <TableCell className="max-w-[180px] text-sm text-muted-foreground">
                       {company.assignedTo?.map((item) => item.name).join(", ") || "—"}
                     </TableCell>
-                    <TableCell>{formatDate(company.followUpDateTime || company.scheduledDateTime || company.followTypeDate)}</TableCell>
+                    <TableCell className="whitespace-nowrap">{formatDateTime(company.createdAt)}</TableCell>
+                    <TableCell className="whitespace-nowrap">
+                      {formatDateTime(company.followUpDateTime || company.scheduledDateTime || company.followTypeDate)}
+                    </TableCell>
                     <TableCell>
                       <div className="flex justify-end gap-1">
                         <Button variant="ghost" size="icon" title="View lead" onClick={() => navigate({ to: "/leads/$id", params: { id: company._id } })}>

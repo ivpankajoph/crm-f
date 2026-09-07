@@ -212,10 +212,9 @@ export default function UnifiedLeadDetails() {
     { value: 'Demo Scheduled', color: 'bg-cyan-500' },
     { value: 'Interested', color: 'bg-emerald-500' },
     { value: 'Not Interested', color: 'bg-red-500' },
-    { value: 'Prospective', color: 'bg-purple-500' },
     { value: 'Follow Up', color: 'bg-yellow-500' },
     { value: 'Committed', color: 'bg-orange-500' },
-    { value: 'Converted', color: 'bg-green-500' }
+    { value: 'Converted', label: 'Converted / Paid', color: 'bg-green-500' }
   ]
 
   useEffect(() => {
@@ -730,7 +729,7 @@ export default function UnifiedLeadDetails() {
             </section>
             <section className="space-y-2.5 p-4">
               <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Sales Context</p>
-              <DetailItem label="Status" value={lead.leadStatus} />
+              <DetailItem label="Status" value={lead.leadStatus === "Converted" ? "Converted / Paid" : lead.leadStatus} />
               <DetailItem label="Assigned To" value={assignedLabel} />
               <DetailItem label="Lead Source" value={lead.leadSource} />
               <DetailItem
@@ -795,7 +794,7 @@ export default function UnifiedLeadDetails() {
                       <SelectItem key={s.value} value={s.value}>
                         <div className="flex items-center gap-2">
                           <div className={`h-2 w-2 rounded-full ${s.color}`} />
-                          {s.value}
+                          {s.label || s.value}
                         </div>
                       </SelectItem>
                     ))}
@@ -1477,7 +1476,7 @@ export default function UnifiedLeadDetails() {
             )}
             <div className="col-span-full border-t pt-4 mt-2">
               <DetailItem label="Lead Source" value={lead?.leadSource} />
-              <DetailItem label="Status" value={lead?.leadStatus} />
+              <DetailItem label="Status" value={lead?.leadStatus === "Converted" ? "Converted / Paid" : lead?.leadStatus} />
               <DetailItem label="Created By" value={lead?.createdBy?.name || 'System'} />
               <DetailItem label="Assigned To" value={assignedLabel} />
               <DetailItem label="Date Added" value={lead ? new Date(lead.createdAt).toLocaleDateString() : '-'} />
@@ -1548,9 +1547,8 @@ function StatusDetailsPanel({
     "Demo Scheduled": "Demo Schedule",
     Interested: "Interest Details",
     "Not Interested": "Closure Details",
-    Prospective: "Prospect Details",
     Committed: "Commitment Details",
-    Converted: "Conversion Details",
+    Converted: "Conversion / Payment Details",
   }
 
   return (
@@ -1616,22 +1614,6 @@ function StatusDetailsPanel({
             </SelectContent>
           </Select>
         </Field>
-      )}
-
-      {status === "Prospective" && (
-        <div className="grid gap-4 md:grid-cols-2">
-          <Field label="Requirement">
-            <Textarea value={details.requirement} onChange={(event) => update("requirement", event.target.value)} className="min-h-[76px]" disabled={saving} />
-          </Field>
-          <div className="grid gap-4 sm:grid-cols-2">
-            <Field label="Estimated Deal Value">
-              <Input type="number" min="0" value={details.estimatedDealValue} onChange={(event) => update("estimatedDealValue", event.target.value)} disabled={saving} />
-            </Field>
-            <Field label="Expected Closing Date">
-              <Input type="date" value={details.expectedClosingDate} onChange={(event) => update("expectedClosingDate", event.target.value)} disabled={saving} />
-            </Field>
-          </div>
-        </div>
       )}
 
       {status === "Committed" && (

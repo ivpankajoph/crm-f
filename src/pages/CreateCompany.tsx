@@ -57,10 +57,9 @@ const LEAD_STATUSES = [
   { value: "Demo Scheduled", color: "bg-cyan-500" },
   { value: "Interested", color: "bg-emerald-500" },
   { value: "Not Interested", color: "bg-red-500" },
-  { value: "Prospective", color: "bg-purple-500" },
   { value: "Follow Up", color: "bg-yellow-500" },
   { value: "Committed", color: "bg-orange-500" },
-  { value: "Converted", color: "bg-green-500" }
+  { value: "Converted", label: "Converted / Paid", color: "bg-green-500" }
 ];
 
 export default function CreateCompany() {
@@ -138,7 +137,17 @@ export default function CreateCompany() {
       setWebsitePreviewOpen(true)
       toast.success(result.source === "cache" ? "Website details Fetched Successfully" : "Website details extracted")
     } catch (err: any) {
-      toast.error(err.response?.data?.message || "Failed to extract website details")
+      const status = Number(err.response?.status || 0)
+      const message = status === 400
+        ? "Please enter a valid website URL, for example: https://example.com"
+        : status === 422
+          ? "We couldn't access this website. Check the URL and make sure the website is publicly available."
+          : status === 429
+            ? "Website import is currently busy. Please wait a moment and try again."
+            : status === 503
+              ? "Website import service is temporarily unavailable. Please enter the details manually or contact your administrator."
+              : "Something went wrong while importing website details. Please try again."
+      toast.error(message)
     } finally {
       progressTimers.forEach(clearTimeout)
       setFetchingWebsite(false)
@@ -517,7 +526,7 @@ export default function CreateCompany() {
                     <SelectItem key={status.value} value={status.value}>
                       <div className="flex items-center gap-2">
                         <span className={`h-2.5 w-2.5 rounded-full ${status.color}`} />
-                        {status.value}
+                      {status.label || status.value}
                       </div>
                     </SelectItem>
                   ))}

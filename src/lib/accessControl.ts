@@ -16,7 +16,7 @@ export const PAGE_GRANTS: Record<string, string> = {
   "/reports/dashboard": "reports.view",
   "/reports/sales": "reports.view",
   "/reports/users": "reports.view",
-  "/reports/attendance": "reports.view",
+  "/reports/attendance": "attendance.view",
   "/email-marketing": "email.module.view",
   "/whatsapp-marketing": "whatsapp.module.view",
   "/users": "admin.users.view",

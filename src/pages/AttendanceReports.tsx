@@ -10,15 +10,23 @@ import { toast } from "sonner"
 import { Badge } from "@/components/ui/badge"
 import { keepPreviousData, useQuery } from "@tanstack/react-query"
 import { useUsersQuery } from "@/hooks/useCrmReferenceData"
+import {
+  attendanceDateInput,
+  attendanceWorkedMinutes,
+  formatAttendanceDate,
+  formatAttendanceDuration,
+  formatAttendanceTime,
+  formatMinutes,
+} from "@/lib/attendance"
 
 export default function AttendanceReports() {
   // Filters
   const [startDate, setStartDate] = useState(() => {
     const d = new Date()
     d.setDate(1) // First day of current month
-    return d.toISOString().split('T')[0]
+    return attendanceDateInput(d)
   })
-  const [endDate, setEndDate] = useState(new Date().toISOString().split('T')[0])
+  const [endDate, setEndDate] = useState(attendanceDateInput())
   const [userId, setUserId] = useState<string>("all")
   
   const employeesQuery = useUsersQuery<any[]>("attendance")
@@ -58,13 +66,18 @@ export default function AttendanceReports() {
   const totalPresent = data.filter(d => d.status === 'Present').length
   const totalHalf = data.filter(d => d.status === 'Half Day').length
   const totalAbsent = data.filter(d => d.status === 'Absent').length
+  const totalLeave = data.filter(d => d.status === 'On Leave').length
+  const totalWorkedMinutes = data.reduce(
+    (total, record) => total + (attendanceWorkedMinutes(record) ?? 0),
+    0,
+  )
 
   return (
-    <div className="flex flex-col gap-6">
+    <div className="flex flex-col gap-3 [&>div:first-child]:mb-0">
       <PageHeader title="Attendance Reports" description="Analyze employee attendance over a custom date range." />
 
       <Card className="shadow-sm">
-        <CardHeader className="flex flex-col md:flex-row items-center justify-between gap-4 pb-4 bg-muted/20 border-b">
+        <CardHeader className="flex flex-col items-center justify-between gap-3 border-b bg-muted/20 p-4 md:flex-row">
           <CardTitle className="text-lg flex items-center gap-2">
             <CalendarRange className="h-5 w-5 text-primary" />
             Report Filters
@@ -106,22 +119,30 @@ export default function AttendanceReports() {
         </CardHeader>
         <CardContent className="p-0">
           {/* Summary Cards */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 p-4 border-b bg-muted/10">
-             <div className="bg-card border rounded-lg p-3 flex flex-col items-center justify-center">
-               <span className="text-muted-foreground text-xs uppercase font-bold tracking-wider mb-1">Total Records</span>
-               <span className="text-2xl font-bold">{totalDays}</span>
+          <div className="grid grid-cols-2 gap-3 border-b bg-muted/10 p-3 lg:grid-cols-3 xl:grid-cols-6">
+             <div className="flex h-20 flex-col items-center justify-center rounded-lg border bg-card px-2 py-2">
+               <span className="mb-1 whitespace-nowrap text-[11px] font-bold uppercase tracking-wider text-muted-foreground">Total Records</span>
+               <span className="text-xl font-bold">{totalDays}</span>
              </div>
-             <div className="bg-emerald-500/10 border border-emerald-500/20 text-emerald-700 dark:text-emerald-400 rounded-lg p-3 flex flex-col items-center justify-center">
-               <span className="text-xs uppercase font-bold tracking-wider mb-1">Present</span>
-               <span className="text-2xl font-bold">{totalPresent}</span>
+             <div className="flex h-20 flex-col items-center justify-center rounded-lg border border-emerald-500/20 bg-emerald-500/10 px-2 py-2 text-emerald-700 dark:text-emerald-400">
+               <span className="mb-1 whitespace-nowrap text-[11px] font-bold uppercase tracking-wider">Present</span>
+               <span className="text-xl font-bold">{totalPresent}</span>
              </div>
-             <div className="bg-amber-500/10 border border-amber-500/20 text-amber-700 dark:text-amber-400 rounded-lg p-3 flex flex-col items-center justify-center">
-               <span className="text-xs uppercase font-bold tracking-wider mb-1">Half Day</span>
-               <span className="text-2xl font-bold">{totalHalf}</span>
+             <div className="flex h-20 flex-col items-center justify-center rounded-lg border border-amber-500/20 bg-amber-500/10 px-2 py-2 text-amber-700 dark:text-amber-400">
+               <span className="mb-1 whitespace-nowrap text-[11px] font-bold uppercase tracking-wider">Half Day</span>
+               <span className="text-xl font-bold">{totalHalf}</span>
              </div>
-             <div className="bg-destructive/10 border border-destructive/20 text-destructive rounded-lg p-3 flex flex-col items-center justify-center">
-               <span className="text-xs uppercase font-bold tracking-wider mb-1">Absent</span>
-               <span className="text-2xl font-bold">{totalAbsent}</span>
+             <div className="flex h-20 flex-col items-center justify-center rounded-lg border border-destructive/20 bg-destructive/10 px-2 py-2 text-destructive">
+               <span className="mb-1 whitespace-nowrap text-[11px] font-bold uppercase tracking-wider">Absent</span>
+               <span className="text-xl font-bold">{totalAbsent}</span>
+             </div>
+             <div className="flex h-20 flex-col items-center justify-center rounded-lg border border-blue-500/20 bg-blue-500/10 px-2 py-2 text-blue-700 dark:text-blue-400">
+               <span className="mb-1 whitespace-nowrap text-[11px] font-bold uppercase tracking-wider">On Leave</span>
+               <span className="text-xl font-bold">{totalLeave}</span>
+             </div>
+             <div className="flex h-20 flex-col items-center justify-center rounded-lg border border-violet-500/20 bg-violet-500/10 px-2 py-2 text-violet-700 dark:text-violet-400">
+               <span className="mb-1 whitespace-nowrap text-[11px] font-bold uppercase tracking-wider">Total Worked</span>
+               <span className="text-xl font-bold">{formatMinutes(totalWorkedMinutes)}</span>
              </div>
           </div>
 
@@ -139,8 +160,8 @@ export default function AttendanceReports() {
                     <TableHead>Role</TableHead>
                     <TableHead>Check In</TableHead>
                     <TableHead>Check Out</TableHead>
+                    <TableHead>Total Login Hours</TableHead>
                     <TableHead>Status</TableHead>
-                    <TableHead>Notes</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -154,7 +175,7 @@ export default function AttendanceReports() {
                     data.map((record) => (
                       <TableRow key={record._id} className="hover:bg-muted/30">
                         <TableCell className="font-medium">
-                           {new Date(record.date).toLocaleDateString(undefined, { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric' })}
+                           {formatAttendanceDate(record.date)}
                         </TableCell>
                         <TableCell>
                           <div className="font-semibold">{record.user?.name || 'Unknown'}</div>
@@ -164,16 +185,16 @@ export default function AttendanceReports() {
                           <span className="capitalize text-sm">{record.user?.role || '-'}</span>
                         </TableCell>
                         <TableCell className="text-muted-foreground text-sm tabular-nums">
-                          {record.checkIn ? new Date(record.checkIn).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : "-"}
+                          {formatAttendanceTime(record.checkIn)}
                         </TableCell>
                         <TableCell className="text-muted-foreground text-sm tabular-nums">
-                          {record.checkOut ? new Date(record.checkOut).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : "-"}
+                          {formatAttendanceTime(record.checkOut)}
+                        </TableCell>
+                        <TableCell className="text-sm font-medium tabular-nums">
+                          {formatAttendanceDuration(record)}
                         </TableCell>
                         <TableCell>
                           {getStatusBadge(record.status)}
-                        </TableCell>
-                        <TableCell className="text-muted-foreground text-xs max-w-[200px] truncate" title={record.notes}>
-                          {record.notes || "-"}
                         </TableCell>
                       </TableRow>
                     ))

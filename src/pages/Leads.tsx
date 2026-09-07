@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from "react"
 import { useNavigate, useSearch } from "@tanstack/react-router"
 import { PageHeader } from "@/components/layout/PageHeader"
 import { Button } from "@/components/ui/button"
-import { Plus, Users, ThumbsUp, ThumbsDown, Target, CalendarDays, Handshake, CheckCircle2, Loader2 } from "lucide-react"
+import { Plus, Users, ThumbsUp, ThumbsDown, CalendarDays, Handshake, CheckCircle2, Loader2 } from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Input } from "@/components/ui/input"
@@ -47,7 +47,6 @@ export default function Leads() {
     demoScheduled: 0,
     interested: 0,
     notInterested: 0,
-    prospective: 0,
     committed: 0,
     converted: 0,
     followUp: 0
@@ -95,10 +94,9 @@ export default function Leads() {
     { title: "Total Company Leads", value: apiStats.totalLeads, icon: Users, color: "text-blue-500", bg: "bg-blue-500/10" },
     { title: "Follow Up", value: apiStats.followUp, icon: CalendarDays, color: "text-indigo-500", bg: "bg-indigo-500/10", status: "Follow Up" },
     { title: "Demo Scheduled", value: apiStats.demoScheduled, icon: CalendarDays, color: "text-cyan-500", bg: "bg-cyan-500/10", status: "Demo Scheduled" },
-    { title: "Committed", value: apiStats.committed, icon: Handshake, color: "text-orange-500", bg: "bg-orange-500/10", status: "Committed" },
     { title: "Interested", value: apiStats.interested, icon: ThumbsUp, color: "text-emerald-500", bg: "bg-emerald-500/10", status: "Interested" },
-    { title: "Prospective", value: apiStats.prospective, icon: Target, color: "text-purple-500", bg: "bg-purple-500/10", status: "Prospective" },
-    { title: "Converted", value: apiStats.converted, icon: CheckCircle2, color: "text-green-500", bg: "bg-green-500/10", status: "Converted" },
+    { title: "Committed", value: apiStats.committed, icon: Handshake, color: "text-orange-500", bg: "bg-orange-500/10", status: "Committed" },
+    { title: "Converted / Paid", value: apiStats.converted, icon: CheckCircle2, color: "text-green-500", bg: "bg-green-500/10", status: "Converted" },
     { title: "Not Interested", value: apiStats.notInterested, icon: ThumbsDown, color: "text-red-500", bg: "bg-red-500/10", status: "Not Interested" },
   ];
 
@@ -211,7 +209,17 @@ export default function Leads() {
       </div>
 
       <div ref={leadsTableRef}>
-        <CompanyLeadsTable status={listStatus} onStatusChange={setListStatus} />
+        <CompanyLeadsTable
+          status={listStatus}
+          onStatusChange={setListStatus}
+          dateFilters={{
+            period: statsPeriod,
+            startDate: dateRange.startDate,
+            endDate: dateRange.endDate,
+            month: selectedMonth,
+            year: selectedYear,
+          }}
+        />
       </div>
     </div>
   )

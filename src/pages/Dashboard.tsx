@@ -8,11 +8,14 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useDashboardMetrics } from "@/hooks/useDashboardMetrics"
 
 export default function Dashboard() {
-  const todayStr = new Date().toISOString().split('T')[0]
+  const todayStr = new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Kolkata" })
   const [statsPeriod, setStatsPeriod] = useState("today")
+  const [dateRange, setDateRange] = useState({ startDate: todayStr, endDate: todayStr })
   const [selectedMonth, setSelectedMonth] = useState(todayStr.slice(0, 7))
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear().toString())
   const [yearInput, setYearInput] = useState(selectedYear)
+  const startDateRef = useRef<HTMLInputElement>(null)
+  const endDateRef = useRef<HTMLInputElement>(null)
   const monthRef = useRef<HTMLInputElement>(null)
 
   const navigate = useNavigate()
@@ -22,6 +25,8 @@ export default function Dashboard() {
     error,
   } = useDashboardMetrics({
     period: statsPeriod,
+    startDate: dateRange.startDate,
+    endDate: dateRange.endDate,
     month: selectedMonth,
     year: selectedYear,
   })
@@ -50,12 +55,26 @@ export default function Dashboard() {
   }
 
   const statCards = [
+    {
+      title: "Total Company Leads",
+      value: metrics.totalCompanyLeads || 0,
+      status: "all",
+      color: "bg-card text-card-foreground border-border dark:bg-card dark:text-card-foreground dark:border-border",
+      dot: "bg-slate-500"
+    },
     { 
       title: "New Leads", 
       value: metrics.new, 
       status: "New",
       color: "bg-card text-card-foreground border-border dark:bg-card dark:text-card-foreground dark:border-border",
       dot: "bg-blue-500"
+    },
+    {
+      title: "Follow Up",
+      value: metrics.followUp || 0,
+      status: "Follow Up",
+      color: "bg-card text-card-foreground border-border dark:bg-card dark:text-card-foreground dark:border-border",
+      dot: "bg-indigo-500"
     },
     { 
       title: "Demo Scheduled", 
@@ -64,40 +83,33 @@ export default function Dashboard() {
       color: "bg-card text-card-foreground border-border dark:bg-card dark:text-card-foreground dark:border-border",
       dot: "bg-cyan-500"
     },
-    { 
+    {
       title: "Interested", 
       value: metrics.interested, 
       status: "Interested",
       color: "bg-card text-card-foreground border-border dark:bg-card dark:text-card-foreground dark:border-border",
       dot: "bg-emerald-500"
     },
-    { 
-      title: "Not Interested", 
-      value: metrics.notInterested, 
-      status: "Not Interested",
-      color: "bg-card text-card-foreground border-border dark:bg-card dark:text-card-foreground dark:border-border",
-      dot: "bg-red-500"
-    },
-    { 
-      title: "Prospective", 
-      value: metrics.prospective, 
-      status: "Prospective",
-      color: "bg-card text-card-foreground border-border dark:bg-card dark:text-card-foreground dark:border-border",
-      dot: "bg-purple-500"
-    },
-    { 
-      title: "Committed", 
-      value: metrics.committed, 
+    {
+      title: "Committed",
+      value: metrics.committed,
       status: "Committed",
       color: "bg-card text-card-foreground border-border dark:bg-card dark:text-card-foreground dark:border-border",
       dot: "bg-orange-500"
     },
     { 
-      title: "Converted", 
+      title: "Converted / Paid",
       value: metrics.converted, 
       status: "Converted",
       color: "bg-card text-card-foreground border-border dark:bg-card dark:text-card-foreground dark:border-border",
       dot: "bg-green-500"
+    },
+    {
+      title: "Not Interested",
+      value: metrics.notInterested,
+      status: "Not Interested",
+      color: "bg-card text-card-foreground border-border dark:bg-card dark:text-card-foreground dark:border-border",
+      dot: "bg-red-500"
     }
   ]
 
@@ -109,7 +121,7 @@ export default function Dashboard() {
           description="Monitor the real-time status of all your Customers and Companies."
         />
         
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center justify-end gap-3">
           <Select value={statsPeriod} onValueChange={setStatsPeriod}>
             <SelectTrigger className="w-[150px] bg-background">
               <SelectValue placeholder="Filter" />
@@ -117,10 +129,35 @@ export default function Dashboard() {
             <SelectContent>
               <SelectItem value="today">Today</SelectItem>
               <SelectItem value="all">All Time</SelectItem>
+              <SelectItem value="date">Date Range</SelectItem>
               <SelectItem value="month">Month Wise</SelectItem>
               <SelectItem value="year">Year Wise</SelectItem>
             </SelectContent>
           </Select>
+          {statsPeriod === "date" && (
+            <div className="flex items-center gap-2">
+              <PickerInput
+                inputRef={startDateRef}
+                type="date"
+                value={dateRange.startDate}
+                onChange={(value) => setDateRange((current) => ({
+                  startDate: value,
+                  endDate: current.endDate < value ? value : current.endDate,
+                }))}
+                className="w-[145px]"
+              />
+              <PickerInput
+                inputRef={endDateRef}
+                type="date"
+                value={dateRange.endDate}
+                onChange={(value) => setDateRange((current) => ({
+                  startDate: current.startDate > value ? value : current.startDate,
+                  endDate: value,
+                }))}
+                className="w-[145px]"
+              />
+            </div>
+          )}
           {statsPeriod === "month" && (
             <PickerInput
               inputRef={monthRef}
@@ -147,7 +184,7 @@ export default function Dashboard() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
         {statCards.map((metric, idx) => (
           <Card 
             key={idx} 
@@ -178,7 +215,7 @@ function PickerInput({
   className,
   inputRef,
 }: {
-  type: "month";
+  type: "date" | "month";
   value: string;
   onChange: (value: string) => void;
   className?: string;
@@ -196,7 +233,9 @@ function PickerInput({
         ref={inputRef}
         type={type}
         value={value}
-        onChange={(e) => onChange(e.target.value)}
+        onChange={(e) => {
+          if (e.target.value) onChange(e.target.value)
+        }}
         className="w-full cursor-pointer pr-10 [&::-webkit-calendar-picker-indicator]:opacity-0"
       />
       <CalendarDays className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />

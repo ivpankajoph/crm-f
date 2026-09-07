@@ -6,7 +6,6 @@ export interface LeadStats {
   demoScheduled: number
   interested: number
   notInterested: number
-  prospective: number
   committed: number
   converted: number
   followUp: number

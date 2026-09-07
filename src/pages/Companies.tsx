@@ -116,9 +116,8 @@ export default function Companies() {
               <SelectItem value="New">New</SelectItem>
               <SelectItem value="Interested">Interested</SelectItem>
               <SelectItem value="Not Interested">Not Interested</SelectItem>
-              <SelectItem value="Prospective">Prospective</SelectItem>
               <SelectItem value="Committed">Committed</SelectItem>
-              <SelectItem value="Converted">Converted</SelectItem>
+              <SelectItem value="Converted">Converted / Paid</SelectItem>
               <SelectItem value="Follow Up">Follow Up</SelectItem>
             </SelectContent>
           </Select>

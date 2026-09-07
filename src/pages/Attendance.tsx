@@ -7,7 +7,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
-import { CalendarDays, Loader2, MapPin, CheckCircle, Clock, MessageSquare, History } from "lucide-react"
+import { CalendarDays, Loader2, MapPin, CheckCircle, Clock, MessageSquare, History, Pencil } from "lucide-react"
 import api from "@/services/api"
 import { toast } from "sonner"
 import { Badge } from "@/components/ui/badge"
@@ -23,6 +23,14 @@ import {
 } from "@/components/ui/dialog"
 import { Textarea } from "@/components/ui/textarea"
 import { can } from "@/lib/accessControl"
+import {
+  attendanceDateInput,
+  attendanceTimeInputValue,
+  attendanceTimeToIso,
+  formatAttendanceDate,
+  formatAttendanceDuration,
+  formatAttendanceTime,
+} from "@/lib/attendance"
 
 function getDistanceFromLatLonInM(lat1: number, lon1: number, lat2: number, lon2: number) {
   const R = 6371e3; // Radius of the earth in m
@@ -45,9 +53,9 @@ const DISTANCE_THRESHOLD = 500; // meters
 
 export default function Attendance() {
   const { user } = useSelector((state: RootState) => state.auth)
-  const isAdmin = can(user, "attendance.manage")
+  const canManageAttendance = can(user, "attendance.manage")
 
-  const [date, setDate] = useState(new Date().toISOString().split('T')[0])
+  const [date, setDate] = useState(attendanceDateInput())
   const [loading, setLoading] = useState(false)
   
   // Admin state
@@ -77,6 +85,13 @@ export default function Attendance() {
   const [requestDialogOpen, setRequestDialogOpen] = useState(false)
   const [requestComment, setRequestComment] = useState("")
   const [requesting, setRequesting] = useState(false)
+  const [editDialogOpen, setEditDialogOpen] = useState(false)
+  const [editingItem, setEditingItem] = useState<any>(null)
+  const [editStatus, setEditStatus] = useState("Present")
+  const [editCheckIn, setEditCheckIn] = useState("")
+  const [editCheckOut, setEditCheckOut] = useState("")
+  const [editNotes, setEditNotes] = useState("")
+  const [savingEdit, setSavingEdit] = useState(false)
 
   useEffect(() => {
     const timer = setInterval(() => setCurrentTime(new Date()), 1000);
@@ -84,22 +99,29 @@ export default function Attendance() {
   }, []);
 
   useEffect(() => {
-    if (!isAdmin && navigator.geolocation) {
+    if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
         (pos) => setLocation({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
         () => console.log("Location not granted initially")
       )
     }
-  }, [isAdmin]);
+  }, []);
 
   useEffect(() => {
-    if (isAdmin) {
-      fetchDailyAttendance()
-    } else {
-      fetchMyHistory()
-      fetchEmployeeProfile()
-    }
-  }, [isAdmin, date, month, year])
+    fetchMyHistory()
+    // The request is deliberately keyed by the selected month and year.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [month, year])
+
+  useEffect(() => {
+    fetchEmployeeProfile()
+  }, [])
+
+  useEffect(() => {
+    if (canManageAttendance) fetchDailyAttendance()
+    // The roster request is deliberately keyed by permission and selected date.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [canManageAttendance, date])
 
   useEffect(() => {
     if (selectedHistoryUser && adminHistoryOpen) {
@@ -284,6 +306,47 @@ export default function Attendance() {
     // fetch is triggered by useEffect on selectedHistoryUser + adminHistoryOpen
   }
 
+  const openEditAttendance = (item: any) => {
+    setEditingItem(item)
+    setEditStatus(item.attendance?.status || "Present")
+    setEditCheckIn(attendanceTimeInputValue(item.attendance?.checkIn))
+    setEditCheckOut(attendanceTimeInputValue(item.attendance?.checkOut))
+    setEditNotes(item.attendance?.notes || "")
+    setEditDialogOpen(true)
+  }
+
+  const saveAttendanceEdit = async () => {
+    if (!editingItem) return
+    if (editCheckOut && !editCheckIn) {
+      toast.error("Check-in is required before check-out")
+      return
+    }
+    const checkIn = attendanceTimeToIso(date, editCheckIn)
+    const checkOut = attendanceTimeToIso(date, editCheckOut)
+    if (checkIn && checkOut && new Date(checkOut) < new Date(checkIn)) {
+      toast.error("Check-out cannot be earlier than check-in")
+      return
+    }
+    try {
+      setSavingEdit(true)
+      await api.post('/attendance', {
+        userId: editingItem.user._id,
+        date,
+        status: editStatus,
+        checkIn,
+        checkOut,
+        notes: editNotes,
+      })
+      await fetchDailyAttendance()
+      setEditDialogOpen(false)
+      toast.success("Attendance updated")
+    } catch (err: any) {
+      toast.error(err.response?.data?.message || "Failed to update attendance")
+    } finally {
+      setSavingEdit(false)
+    }
+  }
+
   const getStatusBadge = (status: string) => {
     switch (status) {
       case 'Present': return <Badge variant="default" className="bg-emerald-500 hover:bg-emerald-600">Present</Badge>
@@ -297,15 +360,15 @@ export default function Attendance() {
   const userInitials = user?.name?.split(' ').map((n: string) => n[0]).join('').substring(0, 2).toUpperCase() || 'U'
   
   // Check if today is marked (timezone safe)
-  const todayStr = new Date().toDateString()
-  const markedTodayRecord = myHistory.find(h => new Date(h.date).toDateString() === todayStr)
+  const todayStr = attendanceDateInput()
+  const markedTodayRecord = myHistory.find(h => attendanceDateInput(h.date) === todayStr)
   const isMarkedToday = !!markedTodayRecord
 
   return (
     <div className="flex flex-col gap-6">
-      <PageHeader title={isAdmin ? "Team Attendance" : "My Attendance"} description={isAdmin ? "Mark and manage daily attendance for your team." : "View your monthly attendance history."} />
+      <PageHeader title="Attendance" description={canManageAttendance ? "Manage permitted employee attendance and track your own day." : "Mark attendance and view your monthly history."} />
 
-      {!isAdmin && (
+      {(
         <Card className="bg-gradient-to-r from-primary/10 via-primary/5 to-transparent border-primary/20 shadow-sm">
           <CardContent className="p-6">
             <div className="flex flex-col md:flex-row items-center justify-between gap-6">
@@ -327,7 +390,7 @@ export default function Attendance() {
               <div className="flex flex-col items-center md:items-end justify-center bg-white/50 dark:bg-black/20 p-4 rounded-xl border border-primary/10">
                 <div className="text-3xl font-bold tracking-tighter tabular-nums flex items-center gap-2">
                   <Clock className="h-6 w-6 text-primary" />
-                  {currentTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+                  {currentTime.toLocaleTimeString("en-IN", { timeZone: "Asia/Kolkata", hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true })}
                 </div>
                 <div className="text-muted-foreground font-medium mt-1 text-sm">
                   {currentTime.toLocaleDateString(undefined, { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
@@ -351,10 +414,10 @@ export default function Attendance() {
                       <span className="text-sm font-medium text-muted-foreground">Status for Today:</span>
                       <div className="mt-1">{getStatusBadge(markedTodayRecord.status)}</div>
                       {markedTodayRecord.checkOut && (
-                        <span className="text-xs text-muted-foreground mt-1">Checked out: {new Date(markedTodayRecord.checkOut).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                        <span className="text-xs text-muted-foreground mt-1">Checked out: {formatAttendanceTime(markedTodayRecord.checkOut)}</span>
                       )}
                     </div>
-                    {!markedTodayRecord.checkOut && (
+                    {markedTodayRecord.checkIn && !markedTodayRecord.checkOut && (
                       <Button 
                         onClick={handleSelfCheckOut} 
                         disabled={markingAttendance}
@@ -458,7 +521,7 @@ export default function Attendance() {
         </DialogContent>
       </Dialog>
 
-      {isAdmin ? (
+      {canManageAttendance && (
         <Card className="shadow-sm">
           <CardHeader className="flex flex-row items-center justify-between pb-4 bg-muted/20 border-b">
             <CardTitle className="text-lg flex items-center gap-2">
@@ -472,7 +535,7 @@ export default function Attendance() {
                 value={date} 
                 onChange={(e) => setDate(e.target.value)} 
                 className="w-auto"
-                max={new Date().toISOString().split('T')[0]}
+                max={attendanceDateInput()}
               />
             </div>
           </CardHeader>
@@ -488,6 +551,9 @@ export default function Attendance() {
                     <TableRow>
                       <TableHead>Employee</TableHead>
                       <TableHead>Role</TableHead>
+                      <TableHead>Check In</TableHead>
+                      <TableHead>Check Out</TableHead>
+                      <TableHead>Total Hours</TableHead>
                       <TableHead>Current Status</TableHead>
                       <TableHead className="text-right">Actions</TableHead>
                     </TableRow>
@@ -501,6 +567,15 @@ export default function Attendance() {
                         </TableCell>
                         <TableCell>
                           <span className="capitalize text-sm">{item.user.role}</span>
+                        </TableCell>
+                        <TableCell className="text-sm tabular-nums text-muted-foreground">
+                          {formatAttendanceTime(item.attendance?.checkIn)}
+                        </TableCell>
+                        <TableCell className="text-sm tabular-nums text-muted-foreground">
+                          {formatAttendanceTime(item.attendance?.checkOut)}
+                        </TableCell>
+                        <TableCell className="text-sm font-medium tabular-nums">
+                          {item.attendance ? formatAttendanceDuration(item.attendance) : "—"}
                         </TableCell>
                         <TableCell>
                           {getStatusBadge(item.attendance?.status)}
@@ -529,6 +604,15 @@ export default function Attendance() {
                               <SelectItem value="On Leave">On Leave</SelectItem>
                             </SelectContent>
                           </Select>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="h-8 gap-1"
+                            onClick={() => openEditAttendance(item)}
+                          >
+                            <Pencil className="h-4 w-4" />
+                            <span className="hidden sm:inline">Edit</span>
+                          </Button>
                         </TableCell>
                       </TableRow>
                     ))}
@@ -538,7 +622,8 @@ export default function Attendance() {
             )}
           </CardContent>
         </Card>
-      ) : (
+      )}
+      {(
         <Card className="shadow-sm">
           <CardHeader className="flex flex-row items-center justify-between pb-4 bg-muted/20 border-b">
             <CardTitle className="text-lg flex items-center gap-2">
@@ -573,6 +658,7 @@ export default function Attendance() {
                       <TableHead>Date</TableHead>
                       <TableHead>Check In</TableHead>
                       <TableHead>Check Out</TableHead>
+                      <TableHead>Total Login Hours</TableHead>
                       <TableHead>Status</TableHead>
                       <TableHead>Notes</TableHead>
                     </TableRow>
@@ -581,13 +667,16 @@ export default function Attendance() {
                     {myHistory.map((record) => (
                       <TableRow key={record._id}>
                         <TableCell className="font-medium">
-                          {new Date(record.date).toLocaleDateString(undefined, { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric' })}
+                          {formatAttendanceDate(record.date)}
                         </TableCell>
                         <TableCell className="text-muted-foreground">
-                          {record.checkIn ? new Date(record.checkIn).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : "-"}
+                          {formatAttendanceTime(record.checkIn)}
                         </TableCell>
                         <TableCell className="text-muted-foreground">
-                          {record.checkOut ? new Date(record.checkOut).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : "-"}
+                          {formatAttendanceTime(record.checkOut)}
+                        </TableCell>
+                        <TableCell className="font-medium tabular-nums">
+                          {formatAttendanceDuration(record)}
                         </TableCell>
                         <TableCell>
                           {getStatusBadge(record.status)}
@@ -604,6 +693,52 @@ export default function Attendance() {
           </CardContent>
         </Card>
       )}
+
+      <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Edit Attendance</DialogTitle>
+            <DialogDescription>
+              Update {editingItem?.user?.name || "employee"}'s attendance for {date}.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-3">
+            <div className="grid gap-2">
+              <label className="text-sm font-medium">Status</label>
+              <Select value={editStatus} onValueChange={setEditStatus}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Present">Present</SelectItem>
+                  <SelectItem value="Absent">Absent</SelectItem>
+                  <SelectItem value="Half Day">Half Day</SelectItem>
+                  <SelectItem value="On Leave">On Leave</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="grid gap-2">
+                <label className="text-sm font-medium" htmlFor="attendance-check-in">Check In</label>
+                <Input id="attendance-check-in" type="time" value={editCheckIn} onChange={(event) => setEditCheckIn(event.target.value)} />
+              </div>
+              <div className="grid gap-2">
+                <label className="text-sm font-medium" htmlFor="attendance-check-out">Check Out</label>
+                <Input id="attendance-check-out" type="time" value={editCheckOut} onChange={(event) => setEditCheckOut(event.target.value)} />
+              </div>
+            </div>
+            <div className="grid gap-2">
+              <label className="text-sm font-medium" htmlFor="attendance-notes">Notes</label>
+              <Textarea id="attendance-notes" value={editNotes} onChange={(event) => setEditNotes(event.target.value)} placeholder="Optional attendance note" />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditDialogOpen(false)}>Cancel</Button>
+            <Button onClick={saveAttendanceEdit} disabled={savingEdit}>
+              {savingEdit && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Save Attendance
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Admin View Employee History Dialog */}
       <Dialog open={adminHistoryOpen} onOpenChange={setAdminHistoryOpen}>
@@ -637,6 +772,7 @@ export default function Attendance() {
                   <TableHead>Date</TableHead>
                   <TableHead>Check In</TableHead>
                   <TableHead>Check Out</TableHead>
+                  <TableHead>Total Login Hours</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead>Notes / Requests</TableHead>
                 </TableRow>
@@ -644,13 +780,13 @@ export default function Attendance() {
               <TableBody>
                 {adminHistoryLoading ? (
                   <TableRow>
-                    <TableCell colSpan={5} className="text-center py-8">
+                    <TableCell colSpan={6} className="text-center py-8">
                       <Loader2 className="h-6 w-6 animate-spin mx-auto text-primary" />
                     </TableCell>
                   </TableRow>
                 ) : adminHistoryData.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
+                    <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
                       No records found for this month.
                     </TableCell>
                   </TableRow>
@@ -658,13 +794,16 @@ export default function Attendance() {
                   adminHistoryData.map((record) => (
                     <TableRow key={record._id}>
                       <TableCell className="font-medium">
-                        {new Date(record.date).toLocaleDateString(undefined, { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric' })}
+                        {formatAttendanceDate(record.date)}
                       </TableCell>
                       <TableCell className="text-muted-foreground">
-                        {record.checkIn ? new Date(record.checkIn).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : "-"}
+                        {formatAttendanceTime(record.checkIn)}
                       </TableCell>
                       <TableCell className="text-muted-foreground">
-                        {record.checkOut ? new Date(record.checkOut).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : "-"}
+                        {formatAttendanceTime(record.checkOut)}
+                      </TableCell>
+                      <TableCell className="font-medium tabular-nums">
+                        {formatAttendanceDuration(record)}
                       </TableCell>
                       <TableCell>
                         {getStatusBadge(record.status)}

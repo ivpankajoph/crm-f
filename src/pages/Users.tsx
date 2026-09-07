@@ -91,7 +91,8 @@ const permissionGroupHelp: Record<string, string> = {
   dashboard: "Decide whether this user can open the CRM dashboard and view its summary.",
   leads: "Choose what this user can do with leads, such as view, create, edit, assign, change status, delete or add notes.",
   employees: "Choose whether this user can view or manage employee information.",
-  workforce: "Choose whether this user can use calling features and view or manage attendance information.",
+  attendance: "Choose whether this user can view or manage attendance and whose records are available.",
+  calling: "Choose whether this user can view or manage calling features.",
   reports: "Choose which reports and business performance information this user can view or export.",
   email: "Choose whether this user can open Email Marketing, use shared templates and send emails to leads.",
   whatsapp: "Choose whether this user can open WhatsApp Marketing, use shared templates and send WhatsApp messages to leads.",
@@ -101,6 +102,7 @@ const permissionGroupHelp: Record<string, string> = {
 const scopeQuestion = (groupId: string, userName: string) => {
   if (groupId === "leads") return `Which leads can ${userName} view?`
   if (groupId === "employees") return `Which employee records can ${userName} view?`
+  if (groupId === "attendance") return `Whose attendance can ${userName} access?`
   if (groupId === "reports") return `Whose report data can ${userName} view?`
   return `Which records can ${userName} view?`
 }
@@ -122,6 +124,13 @@ const scopeOptionLabel = (groupId: string, scope: string, userName: string) => {
       hierarchy: `${userName} and employees reporting to ${userName}`,
       all: "All company employees",
       none: "Hide all employee records",
+    },
+    attendance: {
+      own: `Only ${userName}'s attendance`,
+      team: `${userName}'s team attendance`,
+      hierarchy: `${userName} and reporting employees' attendance`,
+      all: "All company attendance",
+      none: "Hide all attendance records",
     },
     reports: {
       own: `Only ${userName}'s report data`,

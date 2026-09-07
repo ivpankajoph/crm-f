@@ -51,10 +51,9 @@ const LEAD_STATUSES = [
   { value: "Demo Scheduled", color: "bg-cyan-500" },
   { value: "Interested", color: "bg-emerald-500" },
   { value: "Not Interested", color: "bg-red-500" },
-  { value: "Prospective", color: "bg-purple-500" },
   { value: "Follow Up", color: "bg-yellow-500" },
   { value: "Committed", color: "bg-orange-500" },
-  { value: "Converted", color: "bg-green-500" }
+  { value: "Converted", label: "Converted / Paid", color: "bg-green-500" }
 ];
 
 export default function EditCompany() {
@@ -381,7 +380,7 @@ export default function EditCompany() {
                     <SelectItem key={status.value} value={status.value}>
                       <div className="flex items-center gap-2">
                         <span className={`h-2.5 w-2.5 rounded-full ${status.color}`} />
-                        {status.value}
+                      {status.label || status.value}
                       </div>
                     </SelectItem>
                   ))}

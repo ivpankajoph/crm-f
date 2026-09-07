@@ -70,10 +70,10 @@ interface PerformanceData {
   pagination: PaginationMeta
 }
 
-const STATUSES = ["New", "Follow Up", "Interested", "Demo Scheduled", "Prospective", "Committed", "Converted", "Not Interested"]
+const STATUSES = ["New", "Follow Up", "Interested", "Demo Scheduled", "Committed", "Converted", "Not Interested"]
 const STATUS_COLORS: Record<string, string> = {
   New: "#3b82f6", "Follow Up": "#6366f1", Interested: "#10b981", "Demo Scheduled": "#06b6d4",
-  Prospective: "#8b5cf6", Committed: "#f97316", Converted: "#22c55e", "Not Interested": "#ef4444",
+  Committed: "#f97316", Converted: "#22c55e", "Not Interested": "#ef4444",
 }
 const todayInput = () => new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Kolkata" })
 const money = (value: number) => new Intl.NumberFormat("en-IN", { style: "currency", currency: "INR", maximumFractionDigits: 0 }).format(value || 0)
@@ -150,7 +150,7 @@ export default function SalesReports() {
     ["New Leads", data?.metrics.newLeads || 0, Target, "text-blue-500 bg-blue-500/10"],
     ["Active Deals", data?.metrics.activeDeals || 0, BriefcaseBusiness, "text-indigo-500 bg-indigo-500/10"],
     ["Pipeline Value", money(data?.metrics.pipelineValue || 0), IndianRupee, "text-amber-600 bg-amber-500/10"],
-    ["Converted Customers", data?.metrics.convertedCustomers || 0, CheckCircle2, "text-green-600 bg-green-500/10"],
+    ["Converted / Paid Customers", data?.metrics.convertedCustomers || 0, CheckCircle2, "text-green-600 bg-green-500/10"],
     ["Won Revenue", money(data?.metrics.wonRevenue || 0), IndianRupee, "text-emerald-600 bg-emerald-500/10"],
     ["Conversion Rate", `${data?.metrics.conversionRate || 0}%`, TrendingUp, "text-purple-500 bg-purple-500/10"],
     ["Average Deal Value", money(data?.metrics.averageDealValue || 0), BarChart3, "text-orange-500 bg-orange-500/10"],
@@ -178,7 +178,7 @@ export default function SalesReports() {
           <ResponsiveContainer width="100%" height="100%"><BarChart data={data?.charts.pipeline || []} layout="vertical" margin={{ left: -12, right: 25 }}><CartesianGrid strokeDasharray="3 3" horizontal={false} /><XAxis type="number" allowDecimals={false} /><YAxis type="category" dataKey="status" width={100} tick={{ fontSize: 11 }} /><Tooltip cursor={{ fill: "transparent" }} /><Bar dataKey="count" name="Companies" radius={[0, 5, 5, 0]}>{(data?.charts.pipeline || []).map((row) => <Cell key={row.status} fill={STATUS_COLORS[row.status]} />)}</Bar></BarChart></ResponsiveContainer>
         </ReportChart>
         <ReportChart title="Conversion & Revenue Trend" loading={loading} empty={!data?.charts.trend.length}>
-          <ResponsiveContainer width="100%" height="100%"><ComposedChart data={data?.charts.trend || []} margin={{ left: -12, right: 10 }}><CartesianGrid strokeDasharray="3 3" /><XAxis dataKey="period" tick={{ fontSize: 11 }} /><YAxis yAxisId="count" allowDecimals={false} /><YAxis yAxisId="revenue" orientation="right" /><Tooltip /><Legend /><Bar yAxisId="revenue" dataKey="revenue" name="Revenue" fill="#f59e0b" opacity={0.7} /><Line yAxisId="count" dataKey="newLeads" name="New Leads" stroke="#3b82f6" strokeWidth={2} /><Line yAxisId="count" dataKey="converted" name="Converted" stroke="#10b981" strokeWidth={2} /></ComposedChart></ResponsiveContainer>
+          <ResponsiveContainer width="100%" height="100%"><ComposedChart data={data?.charts.trend || []} margin={{ left: -12, right: 10 }}><CartesianGrid strokeDasharray="3 3" /><XAxis dataKey="period" tick={{ fontSize: 11 }} /><YAxis yAxisId="count" allowDecimals={false} /><YAxis yAxisId="revenue" orientation="right" /><Tooltip /><Legend /><Bar yAxisId="revenue" dataKey="revenue" name="Revenue" fill="#f59e0b" opacity={0.7} /><Line yAxisId="count" dataKey="newLeads" name="New Leads" stroke="#3b82f6" strokeWidth={2} /><Line yAxisId="count" dataKey="converted" name="Converted / Paid" stroke="#10b981" strokeWidth={2} /></ComposedChart></ResponsiveContainer>
         </ReportChart>
       </div>
 
@@ -189,19 +189,19 @@ export default function SalesReports() {
         actions={<Select value={performanceLimit} onValueChange={setPerformanceLimit}><SelectTrigger className="w-[115px]"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="10">Top 10</SelectItem><SelectItem value="20">Top 20</SelectItem></SelectContent></Select>}
         contentClassName={performanceLimit === "20" ? "h-[620px]" : "h-[400px]"}
       >
-        <ResponsiveContainer width="100%" height="100%"><BarChart data={performanceData?.chart || []} layout="vertical" margin={{ right: 20 }}><CartesianGrid strokeDasharray="3 3" horizontal={false} /><XAxis type="number" allowDecimals={false} /><YAxis type="category" dataKey="owner" width={140} tick={{ fontSize: 11 }} /><Tooltip /><Legend /><Bar dataKey="assigned" name="Assigned" fill="#3b82f6" /><Bar dataKey="activeDeals" name="Active Deals" fill="#8b5cf6" /><Bar dataKey="converted" name="Converted" fill="#10b981" /></BarChart></ResponsiveContainer>
+        <ResponsiveContainer width="100%" height="100%"><BarChart data={performanceData?.chart || []} layout="vertical" margin={{ right: 20 }}><CartesianGrid strokeDasharray="3 3" horizontal={false} /><XAxis type="number" allowDecimals={false} /><YAxis type="category" dataKey="owner" width={140} tick={{ fontSize: 11 }} /><Tooltip /><Legend /><Bar dataKey="assigned" name="Assigned" fill="#3b82f6" /><Bar dataKey="activeDeals" name="Active Deals" fill="#8b5cf6" /><Bar dataKey="converted" name="Converted / Paid" fill="#10b981" /></BarChart></ResponsiveContainer>
       </ReportChart>
 
       <Card className="overflow-hidden shadow-sm">
         <CardHeader className="border-b bg-muted/20"><div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"><div><CardTitle className="text-base">Employee Leaderboard</CardTitle><p className="mt-1 text-sm text-muted-foreground">All employees and administrators, ranked by conversions and revenue.</p></div><div className="relative w-full sm:w-[280px]"><Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" /><Input value={performanceSearch} onChange={(e) => { setPerformanceSearch(e.target.value); setPerformancePage(1) }} placeholder="Search employee" className="pl-9" /></div></div></CardHeader>
-        <CardContent className="p-0"><div className="overflow-x-auto"><Table><TableHeader><TableRow><TableHead className="w-16">Rank</TableHead><TableHead>Employee</TableHead><TableHead>Assigned</TableHead><TableHead>Active Deals</TableHead><TableHead>Converted</TableHead><TableHead>Conversion Rate</TableHead><TableHead>Revenue</TableHead></TableRow></TableHeader><TableBody>
+        <CardContent className="p-0"><div className="overflow-x-auto"><Table><TableHeader><TableRow><TableHead className="w-16">Rank</TableHead><TableHead>Employee</TableHead><TableHead>Assigned</TableHead><TableHead>Active Deals</TableHead><TableHead>Converted / Paid</TableHead><TableHead>Conversion Rate</TableHead><TableHead>Revenue</TableHead></TableRow></TableHeader><TableBody>
           {performanceLoading && !performanceData ? <TableRow><TableCell colSpan={7} className="py-10 text-center"><Loader2 className="mx-auto h-6 w-6 animate-spin" /></TableCell></TableRow> : !performanceData?.items.length ? <TableRow><TableCell colSpan={7} className="py-10 text-center text-muted-foreground">No employee performance found for the selected filters.</TableCell></TableRow> : performanceData.items.map((row, index) => <TableRow key={row.ownerId || row.owner}><TableCell>{(performanceData.pagination.page - 1) * performanceData.pagination.limit + index + 1}</TableCell><TableCell className="font-medium">{row.owner}</TableCell><TableCell>{row.assigned}</TableCell><TableCell>{row.activeDeals}</TableCell><TableCell>{row.converted}</TableCell><TableCell>{row.conversionRate}%</TableCell><TableCell>{money(row.revenue)}</TableCell></TableRow>)}
         </TableBody></Table></div><DataPagination pagination={performanceData?.pagination} onPageChange={setPerformancePage} /></CardContent>
       </Card>
 
       <Card className="overflow-hidden shadow-sm">
         <CardHeader className="border-b bg-muted/20"><div className="flex flex-wrap items-center gap-2"><div className="relative min-w-[220px] flex-1"><Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" /><Input value={search} onChange={(e) => { setSearch(e.target.value); setPage(1); setPerformancePage(1) }} placeholder="Search company, contact, email or phone" className="pl-9" /></div>
-          <Select value={statusFilter} onValueChange={updateFilter(setStatusFilter)}><SelectTrigger className="w-[165px] bg-background"><SelectValue placeholder="Status" /></SelectTrigger><SelectContent><SelectItem value="All">All Statuses</SelectItem>{STATUSES.map((status) => <SelectItem key={status} value={status}>{status}</SelectItem>)}</SelectContent></Select>
+          <Select value={statusFilter} onValueChange={updateFilter(setStatusFilter)}><SelectTrigger className="w-[165px] bg-background"><SelectValue placeholder="Status" /></SelectTrigger><SelectContent><SelectItem value="All">All Statuses</SelectItem>{STATUSES.map((status) => <SelectItem key={status} value={status}>{status === "Converted" ? "Converted / Paid" : status}</SelectItem>)}</SelectContent></Select>
           <Select value={ownerFilter} onValueChange={updateFilter(setOwnerFilter)}><SelectTrigger className="w-[175px] bg-background"><Users className="mr-2 h-4 w-4" /><SelectValue placeholder="Owner" /></SelectTrigger><SelectContent><SelectItem value="All">All Owners</SelectItem>{(data?.facets.owners || []).map((owner) => <SelectItem key={owner.id} value={owner.id}>{owner.name}</SelectItem>)}</SelectContent></Select>
           <Select value={sourceFilter} onValueChange={updateFilter(setSourceFilter)}><SelectTrigger className="w-[165px] bg-background"><SelectValue placeholder="Source" /></SelectTrigger><SelectContent><SelectItem value="All">All Sources</SelectItem>{(data?.facets.sources || []).map((source) => <SelectItem key={source} value={source}>{source}</SelectItem>)}</SelectContent></Select>
         </div></CardHeader>
@@ -214,8 +214,8 @@ export default function SalesReports() {
 }
 
 function StatusBadge({ status }: { status: string }) {
-  const classes: Record<string, string> = { Converted: "bg-green-100 text-green-800", Committed: "bg-orange-100 text-orange-800", Prospective: "bg-purple-100 text-purple-800", Interested: "bg-emerald-100 text-emerald-800", "Not Interested": "bg-red-100 text-red-800", "Demo Scheduled": "bg-cyan-100 text-cyan-800", "Follow Up": "bg-indigo-100 text-indigo-800" }
-  return <Badge className={classes[status]} variant={classes[status] ? "default" : "secondary"}>{status}</Badge>
+  const classes: Record<string, string> = { Converted: "bg-green-100 text-green-800", Committed: "bg-orange-100 text-orange-800", Interested: "bg-emerald-100 text-emerald-800", "Not Interested": "bg-red-100 text-red-800", "Demo Scheduled": "bg-cyan-100 text-cyan-800", "Follow Up": "bg-indigo-100 text-indigo-800" }
+  return <Badge className={classes[status]} variant={classes[status] ? "default" : "secondary"}>{status === "Converted" ? "Converted / Paid" : status}</Badge>
 }
 
 function ReportChart({ title, loading, empty, actions, contentClassName = "h-[320px]", children }: { title: string; loading: boolean; empty: boolean; actions?: React.ReactNode; contentClassName?: string; children: React.ReactNode }) {

@@ -186,10 +186,9 @@ export default function AllLeads() {
               <SelectItem value="Demo Scheduled">Demo Scheduled</SelectItem>
               <SelectItem value="Interested">Interested</SelectItem>
               <SelectItem value="Not Interested">Not Interested</SelectItem>
-              <SelectItem value="Prospective">Prospective</SelectItem>
               <SelectItem value="Follow Up">Follow Up</SelectItem>
               <SelectItem value="Committed">Committed</SelectItem>
-              <SelectItem value="Converted">Converted</SelectItem>
+              <SelectItem value="Converted">Converted / Paid</SelectItem>
             </SelectContent>
           </Select>
 
@@ -392,7 +391,7 @@ export default function AllLeads() {
               )}
               <div className="col-span-full border-t pt-4 mt-2">
                 <DetailItem label="Lead Source" value={selectedLeadData.leadSource} />
-                <DetailItem label="Status" value={selectedLeadData.leadStatus} />
+                <DetailItem label="Status" value={selectedLeadData.leadStatus === "Converted" ? "Converted / Paid" : selectedLeadData.leadStatus} />
                 <DetailItem label="Created By" value={selectedLeadData.createdBy?.name || 'System'} />
                 <DetailItem
                   label="Assigned To"

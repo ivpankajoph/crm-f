@@ -66,7 +66,6 @@ const PIPELINE_COLORS: Record<string, string> = {
   New: "#3b82f6",
   "Demo Scheduled": "#06b6d4",
   Interested: "#10b981",
-  Prospective: "#8b5cf6",
   Committed: "#f97316",
   Converted: "#22c55e",
   "Not Interested": "#ef4444",
@@ -113,9 +112,9 @@ export default function DashboardReports() {
   const metrics = [
     { title: "Total Companies", value: data?.metrics.totalCompanies || 0, helper: "All Time", icon: Building2, tone: "text-blue-500 bg-blue-500/10", target: "/leads" as const },
     { title: "New Leads", value: data?.metrics.newLeads || 0, helper: "Selected period", icon: Target, tone: "text-indigo-500 bg-indigo-500/10", target: "/leads" as const },
-    { title: "Converted Customers", value: data?.metrics.convertedCustomers || 0, helper: "Selected period", icon: CheckCircle2, tone: "text-emerald-500 bg-emerald-500/10", target: "/leads" as const },
-    { title: "Conversion Rate", value: `${data?.metrics.conversionRate || 0}%`, helper: "Converted ÷ new leads", icon: TrendingUp, tone: "text-purple-500 bg-purple-500/10", target: "/reports/sales" as const },
-    { title: "Active Pipeline Value", value: currency(data?.metrics.activePipelineValue || 0), helper: "Prospective + committed", icon: IndianRupee, tone: "text-amber-600 bg-amber-500/10", target: "/reports/sales" as const },
+    { title: "Converted / Paid Customers", value: data?.metrics.convertedCustomers || 0, helper: "Selected period", icon: CheckCircle2, tone: "text-emerald-500 bg-emerald-500/10", target: "/leads" as const },
+    { title: "Conversion Rate", value: `${data?.metrics.conversionRate || 0}%`, helper: "Converted / Paid ÷ new leads", icon: TrendingUp, tone: "text-purple-500 bg-purple-500/10", target: "/reports/sales" as const },
+    { title: "Active Pipeline Value", value: currency(data?.metrics.activePipelineValue || 0), helper: "Interested + committed", icon: IndianRupee, tone: "text-amber-600 bg-amber-500/10", target: "/reports/sales" as const },
     { title: "Won Revenue", value: currency(data?.metrics.wonRevenue || 0), helper: "Selected period", icon: IndianRupee, tone: "text-green-600 bg-green-500/10", target: "/reports/sales" as const },
     { title: "Follow-ups Due", value: data?.metrics.followUpsDue || 0, helper: "Selected period", icon: Clock3, tone: "text-rose-500 bg-rose-500/10", target: "/leads" as const },
     { title: "Meetings Completed", value: data?.metrics.meetingsCompleted || 0, helper: "Selected period", icon: CalendarCheck2, tone: "text-orange-500 bg-orange-500/10", target: "/meetings" as const },
@@ -173,7 +172,7 @@ export default function DashboardReports() {
               <YAxis allowDecimals={false} tick={{ fontSize: 12 }} />
               <Tooltip /><Legend />
               <Line type="monotone" dataKey="newLeads" name="New Leads" stroke="#3b82f6" strokeWidth={2} />
-              <Line type="monotone" dataKey="converted" name="Converted" stroke="#10b981" strokeWidth={2} />
+              <Line type="monotone" dataKey="converted" name="Converted / Paid" stroke="#10b981" strokeWidth={2} />
             </LineChart>
           </ResponsiveContainer>
         </ChartCard>
